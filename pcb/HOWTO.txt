@@ -1,0 +1,5 @@
+1. Download and install Cadsoft Eagle (there is a free version)
+2. Download the files
+3. Watch this tutorial and do the exercizes to become an instant pro: https://www.youtube.com/playlist?list=PLB4C63828A483E756
+4. Open the .brd files and watch/edit/whatever as much as you can
+5. Start your own project and be awesome! It's easier than you think!
