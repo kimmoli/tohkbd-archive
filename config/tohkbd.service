@@ -1,0 +1,11 @@
+[Unit]
+Description=The Other Half QWERTY Keyboard
+Requires=dbus.service
+
+[Service]
+ExecStart=/home/nemo/test/tohkbd
+Restart=always
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/100000/dbus/user_bus_socket
+
+[Install]
+WantedBy=multi-user.target
