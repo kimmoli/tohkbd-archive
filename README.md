@@ -3,6 +3,14 @@ tohkbd
 
 Jolla TOH keyboard
 
+Folder | Waht there?
+-------|-------------------------------------
+bin    | Executable(s)
+config | System configuration files (systemd, dbus, udev...)
+pcb    | Eagle files (Schematic, Board)
+stl    | 3D Models for printing
+vkb    | Virtual keyboard to assist external keyboard with clipboard etc.
+
 
 NOTE
 =====
