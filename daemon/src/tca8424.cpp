@@ -114,15 +114,16 @@ int tca8424_readMemory(int file, int start, int len, char* data)
  *
  */
 
-const char* tca8424_processKeyMap(char *map, int *c, int *shift, int *alt)
+const char* tca8424_processKeyMap(char *input, int *c, int *shift, int *alt, int *ctrl)
 {
-    unsigned char k = map[5];
+    unsigned char k = input[5];
 
     *c = 0;
     *shift = false;
     *alt = false;
+    *ctrl = false;
 
-    /* first check for shift and alt */
+    /* first check for shift, alt and ctrl */
     if (k == 0x9E || k == 0xBC)
     {
         *shift = true;
@@ -131,11 +132,16 @@ const char* tca8424_processKeyMap(char *map, int *c, int *shift, int *alt)
     {
         *alt = true;
     }
+    else if (k == 0xB3 || k == 0xB9)
+    {
+        *ctrl = true;
+        return "! Ctrl";
+    }
 
     /* if alt, use alternate key mapping */
     if (*alt)
     {
-        k = map[6];
+        k = input[6];
         if (k == 0xF1) { *c = KEY_1; return "Q 1"; }
         if (k == 0xA2) { *c = KEY_COMMA; *shift = true; return "Z <"; }
         if (k == 0xC2) { *c = KEY_1; *shift = true; return "S !"; }
@@ -178,7 +184,7 @@ const char* tca8424_processKeyMap(char *map, int *c, int *shift, int *alt)
 
     /* if shift, check the next key in map */
     if (*shift)
-        k = map[6];
+        k = input[6];
 
     if (k == 0xC1) { *c = KEY_A; return "A Fn-hold"; }
     if (k == 0xF1) { *c = KEY_Q; return "Q 1"; }
@@ -186,7 +192,6 @@ const char* tca8424_processKeyMap(char *map, int *c, int *shift, int *alt)
     if (k == 0xC2) { *c = KEY_S; return "S !"; }
     if (k == 0xF2) { *c = KEY_W; return "W 2"; }
     if (k == 0xA3) { *c = KEY_X; return "X >"; }
-    // if (k == 0xB3) { *c = KEY_KUKKUU; return "Search"; }
     if (k == 0xC3) { *c = KEY_D; return "D #"; }
     if (k == 0xF3) { *c = KEY_E; return "E 3"; }
     if (k == 0xA4) { *c = KEY_C; return "C _"; }
@@ -210,7 +215,6 @@ const char* tca8424_processKeyMap(char *map, int *c, int *shift, int *alt)
     if (k == 0xC8) { *c = KEY_K; return "K *"; }
     if (k == 0xF8) { *c = KEY_I; return "I 8"; }
     if (k == 0xA9) { *c = KEY_COMMA; return ", ;"; }
-    // if (k == 0xB9) { *c = KEY_KUKKUU; return "////"; }
     if (k == 0xC9) { *c = KEY_L; return "L ("; }
     if (k == 0xF9) { *c = KEY_O; return "O 9"; }
     if (k == 0xAA) { *c = KEY_DOT; return ". :"; }

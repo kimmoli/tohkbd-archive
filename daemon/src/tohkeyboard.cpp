@@ -253,7 +253,8 @@ void Tohkbd::handleDisplayStatus(const QDBusMessage& msg)
 
 void Tohkbd::handleGpioInterrupt()
 {
-    int fd, code, isShift, isAlt;
+    static int haveCtrl = 0;
+    int fd, code, isShift, isAlt, isCtrl;
     char inRep[12];
     const char *buf;
 
@@ -268,7 +269,7 @@ void Tohkbd::handleGpioInterrupt()
     tca8424_readInputReport(fd, inRep);
     tca8424_closeComms(fd);
 
-    buf = tca8424_processKeyMap(inRep, &code, &isShift, &isAlt);
+    buf = tca8424_processKeyMap(inRep, &code, &isShift, &isAlt, &isCtrl);
 
     if ((code != 0) && (capsLockSeq == 1 || capsLockSeq == 2)) /* Abort caps-lock if other key pressed */
         capsLockSeq = 0;
@@ -293,12 +294,17 @@ void Tohkbd::handleGpioInterrupt()
         uinputif->synUinputDevice();
         printf("CapsLock off\n");
     }
-
+    else if (code == 0 && isCtrl) /* Ctrl pressed */
+    {
+        haveCtrl ^= 1;
+        uinputif->sendUinputKeyPress(KEY_LEFTCTRL, haveCtrl);
+        printf("%s\n", haveCtrl ? "Ctrl down" : "Ctrl lifted");
+    }
 
     if (code != 0) /* We resolved what was pressed */
     {
-        printf("Key pressed: %s (%d 0x%02x shft=%d alt=%d)\n",
-               buf, code, inRep[5], isShift, isAlt);
+        printf("Key pressed: %s (%d 0x%02x shft=%d alt=%d ctrl=%d)\n",
+               buf, code, inRep[5], isShift, isAlt, haveCtrl);
 
         if (isShift)
             uinputif->sendUinputKeyPress(KEY_LEFTSHIFT, 1);
@@ -306,6 +312,12 @@ void Tohkbd::handleGpioInterrupt()
         uinputif->sendUinputKeyPress(code, 0);
         if (isShift)
             uinputif->sendUinputKeyPress(KEY_LEFTSHIFT, 0);
+        if (haveCtrl)
+        {
+            uinputif->sendUinputKeyPress(KEY_LEFTCTRL, 0);
+            printf("Ctrl released automatically\n");
+            haveCtrl = 0;
+        }
 
         uinputif->synUinputDevice();
 
