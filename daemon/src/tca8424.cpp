@@ -26,10 +26,10 @@ int tca8424_reset(int file)
     char buf[4] = {0x00, 0x06, 0x00, 0x01};
 
     if (write(file, buf, 4) != 4)
-       {
-           close(file);
-           return -3;
-       }
+    {
+        close(file);
+        return -3;
+    }
     return 3;
 }
 
@@ -40,10 +40,10 @@ int tca8424_leds(int file, char leds)
     buf[8] = leds;
 
     if (write(file, buf, 9) != 9)
-       {
-           close(file);
-           return -4;
-       }
+    {
+        close(file);
+        return -4;
+    }
     return file;
 }
 
@@ -78,8 +78,8 @@ int tca8424_readInputReport(int file, char* report)
 
     if (write(file, buf, 6) != 6)
     {
-       close(file);
-       return -5;
+        close(file);
+        return -5;
     }
 
     if (read( file, buf, 11 ) != 11)
@@ -105,8 +105,8 @@ int tca8424_readMemory(int file, int start, int len, char* data)
 
     if (write(file, buf, 2) != 2)
     {
-       close(file);
-       return -11;
+        close(file);
+        return -11;
     }
 
     if (read( file, buf, len ) != len)

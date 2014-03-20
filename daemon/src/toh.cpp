@@ -18,18 +18,18 @@
 
 int controlVdd(int state)
 {
-	
-	int fd;
 
-	fd = open("/sys/devices/platform/reg-userspace-consumer.0/state", O_WRONLY);
-	
+    int fd;
+
+    fd = open("/sys/devices/platform/reg-userspace-consumer.0/state", O_WRONLY);
+
     if (!(fd < 0))
-	{
-		write (fd, state ? "1" : "0", 1);
-		close(fd);
-	}
-	
-	return fd;
+    {
+        write (fd, state ? "1" : "0", 1);
+        close(fd);
+    }
+
+    return fd;
 }
 
 int releaseTohInterrupt(int fdGpio)

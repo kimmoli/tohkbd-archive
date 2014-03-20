@@ -91,66 +91,66 @@ int main(int argc, char **argv)
 
 void writeToLog(const char *buf)
 {
-	int logFile;
-	char ts[20];
+    int logFile;
+    char ts[20];
     char tmp[1024];
-	
-	time_t t;
-	struct tm *tnow;
 
-	t = time(NULL);
-	tnow = localtime(&t);	
-	
-	strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", tnow);
-	
-	snprintf(tmp, sizeof(tmp), "%s :: %s\r\n", ts, buf);
-	
+    time_t t;
+    struct tm *tnow;
+
+    t = time(NULL);
+    tnow = localtime(&t);
+
+    strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", tnow);
+
+    snprintf(tmp, sizeof(tmp), "%s :: %s\r\n", ts, buf);
+
     logFile = open("tohkbdlog", O_WRONLY | O_CREAT | O_APPEND, 0666);
 
-	if (logFile != -1)
-		write(logFile, tmp, strlen(tmp));
+    if (logFile != -1)
+        write(logFile, tmp, strlen(tmp));
 
-	close(logFile);
+    close(logFile);
 }
 
 
 void daemonize()
 {
-	/* Change the file mode mask */
-	umask(0);
+    /* Change the file mode mask */
+    umask(0);
 
-	/* Change the current working directory */
-	if ((chdir("/tmp")) < 0) 
-		exit(EXIT_FAILURE);
+    /* Change the current working directory */
+    if ((chdir("/tmp")) < 0)
+        exit(EXIT_FAILURE);
 
-	/* Close out the standard file descriptors */
-//	close(STDIN_FILENO);
-//	close(STDOUT_FILENO);
-//	close(STDERR_FILENO);
+    /* Close out the standard file descriptors */
+    // close(STDIN_FILENO);
+    // close(STDOUT_FILENO);
+    // close(STDERR_FILENO);
 
-	/* register signals to monitor / ignore */
-	signal(SIGCHLD,SIG_IGN); /* ignore child */
-	signal(SIGTSTP,SIG_IGN); /* ignore tty signals */
-	signal(SIGTTOU,SIG_IGN);
-	signal(SIGTTIN,SIG_IGN);
-	signal(SIGHUP,signalHandler); /* catch hangup signal */
-	signal(SIGTERM,signalHandler); /* catch kill signal */
+    /* register signals to monitor / ignore */
+    signal(SIGCHLD,SIG_IGN); /* ignore child */
+    signal(SIGTSTP,SIG_IGN); /* ignore tty signals */
+    signal(SIGTTOU,SIG_IGN);
+    signal(SIGTTIN,SIG_IGN);
+    signal(SIGHUP,signalHandler); /* catch hangup signal */
+    signal(SIGTERM,signalHandler); /* catch kill signal */
 }
 
 
 void signalHandler(int sig) /* signal handler function */
 {
-	switch(sig)
-	{
-		case SIGHUP:
-			/* rehash the server */
-			writeToLog("Received signal SIGHUP");
-			break;		
-		case SIGTERM:
-			/* finalize the server */
-			writeToLog("Received signal SIGTERM");
+    switch(sig)
+    {
+        case SIGHUP:
+            /* rehash the server */
+            writeToLog("Received signal SIGHUP");
+            break;
+        case SIGTERM:
+            /* finalize the server */
+            writeToLog("Received signal SIGTERM");
             controlVdd(0);
-			exit(0);
-			break;		
-	}	
+            exit(0);
+            break;
+    }
 }
