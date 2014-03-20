@@ -10,7 +10,6 @@
 
 #include "uinputif.h"
 
-#include "tohkbd.h"
 #include <linux/input.h>
 #include <linux/uinput.h>
 #include <stdio.h>
@@ -21,10 +20,10 @@
 #include <errno.h>
 #include <time.h>
 
-static const char *conf_devname = "tohkbd";
-const char specialKeys[] = { KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
-                             KEY_KPPLUS, KEY_HOME, KEY_END, KEY_PAGEDOWN, KEY_PAGEUP,
-                             0 };
+static const char conf_devname[] = "tohkbd";
+static const char specialKeys[] = { KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
+                                    KEY_KPPLUS, KEY_HOME, KEY_END,
+                                    KEY_PAGEDOWN, KEY_PAGEUP, 0 };
 
 int UinputIf::fd = -1;
 
@@ -48,19 +47,19 @@ int UinputIf::openUinputDevice()
     fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
     if(fd < 0)
     {
-        writeToLog("uinput: error: open");
+        printf("uinput: error: open\n");
         return false;
     }
 
     if(ioctl(fd, UI_SET_EVBIT, EV_KEY) < 0)
     {
-        writeToLog("uinput: error: ioctl UI_SET_EVBIT EV_KEY");
+        printf("uinput: error: ioctl UI_SET_EVBIT EV_KEY\n");
         return false;
     }
 
     if(ioctl(fd, UI_SET_EVBIT, EV_SYN) < 0)
     {
-        writeToLog("uinput: error: ioctl UI_SET_EVBIT EV_SYN");
+        printf("uinput: error: ioctl UI_SET_EVBIT EV_SYN\n");
         return false;
     }
 
@@ -70,7 +69,7 @@ int UinputIf::openUinputDevice()
     {
         if(ioctl(fd, UI_SET_KEYBIT, i) < 0)
         {
-            writeToLog("uinput: error: ioctl UI_SET_KEYBIT");
+            printf("uinput: error: ioctl UI_SET_KEYBIT\n");
             return false;
         }
     }
@@ -80,13 +79,13 @@ int UinputIf::openUinputDevice()
     {
         if(ioctl(fd, UI_SET_KEYBIT, specialKeys[i] ) < 0)
         {
-            writeToLog("uinput: error: ioctl UI_SET_KEYBIT");
+            printf("uinput: error: ioctl UI_SET_KEYBIT\n");
             return false;
         }
         i++;
     }
 
-    //writeToLog("uinput: /dev/uinput opened succesfully.");
+    //printf("uinput: /dev/uinput opened succesfully.\n");
 
     memset(&uidev, 0, sizeof(uidev));
     strncpy(uidev.name, conf_devname, UINPUT_MAX_NAME_SIZE);
@@ -97,13 +96,13 @@ int UinputIf::openUinputDevice()
 
     if(write(fd, &uidev, sizeof(uidev)) < 0)
     {
-        writeToLog("uinput: error: write uidev");
+        printf("uinput: error: write uidev\n");
         return false;
     }
 
     if(ioctl(fd, UI_DEV_CREATE) < 0)
     {
-        writeToLog("uinput: error: ioctl UI_DEV_CREATE");
+        printf("uinput: error: ioctl UI_DEV_CREATE\n");
         return false;
     }
 
@@ -129,7 +128,7 @@ int UinputIf::synUinputDevice()
     ev.value = 0;
     if(write(fd, &ev, sizeof(struct input_event)) < 0)
     {
-        writeToLog("uinput: error: EV_SYN write");
+        printf("uinput: error: EV_SYN write\n");
         return false;
     }
     return true;
@@ -156,7 +155,7 @@ int UinputIf::sendUinputKeyPress(unsigned int code, int val)
     ev.value = val;
     if(write(fd, &ev, sizeof(struct input_event)) < 0)
     {
-        writeToLog("uinput: error: EV_KEY write");
+        printf("uinput: error: EV_KEY write\n");
         return false;
     }
 
@@ -175,7 +174,7 @@ int UinputIf::closeUinputDevice()
 
     if(ioctl(fd, UI_DEV_DESTROY) < 0)
     {
-        writeToLog("uinput: error: ioctl");
+        printf("uinput: error: ioctl\n");
         return false;
     }
 

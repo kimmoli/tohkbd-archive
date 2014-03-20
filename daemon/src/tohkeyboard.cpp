@@ -26,7 +26,6 @@
 #include <poll.h>
 
 #include "tohkeyboard.h"
-#include "tohkbd.h"
 #include "toh.h"
 #include "tca8424.h"
 
@@ -79,7 +78,7 @@ void Tohkbd::timerTimeout()
     int fd;
 
 #ifdef TEST_NOHW
-    writeToLog("1 sec timer");
+    printf("1 sec timer\n");
 
     if (tca_led & 0x10)
         uinputif->sendUinputKeyPress(KEY_LEFTSHIFT, 1);
@@ -103,7 +102,7 @@ void Tohkbd::timerTimeout()
         fd = tca8424_initComms(TCA_ADDR);
         if (fd<0)
         {
-            writeToLog("failed to start communication with TCA8424");
+            printf("failed to start communication with TCA8424\n");
             mutex.unlock();
             return;
         }
@@ -122,17 +121,17 @@ QString Tohkbd::setVddState(const QString &arg)
     QString turn = QString("%1").arg(arg);
     QByteArray ba = tmp.toLocal8Bit();
 
-    writeToLog(ba.data());
+    printf("%s\n", ba.data());
 
     if (controlVdd( ( QString::localeAwareCompare( turn, "on") ? 0 : 1) ) < 0)
     {
         vddEnabled = false;
-        writeToLog("VDD control FAILED");
+        printf("VDD control FAILED\n");
     }
     else
     {
         vddEnabled = QString::localeAwareCompare( turn, "on") ? false : true;
-        writeToLog("VDD control OK");
+        printf("VDD control OK\n");
     }
 
     return QString("you have been served. %1").arg(arg);
@@ -142,7 +141,7 @@ QString Tohkbd::setVddState(const QString &arg)
 /* Kills toholed daemon */
 QString Tohkbd::kill(const QString &arg)
 {
-    writeToLog("Someone wants to kill me");
+    printf("Someone wants to kill me\n");
     QMetaObject::invokeMethod(QCoreApplication::instance(), "quit");
 
     return QString("AAARGH. %1").arg(arg);
@@ -164,7 +163,7 @@ QString Tohkbd::setInterruptEnable(const QString &arg)
 
     if(QString::localeAwareCompare( turn, "on") == 0)
     {
-        writeToLog("enabling interrupt");
+        printf("enabling interrupt\n");
 
 
         gpio_fd = getTohInterrupt();
@@ -176,13 +175,13 @@ QString Tohkbd::setInterruptEnable(const QString &arg)
 
             worker->requestWork(gpio_fd);
 
-            writeToLog("worker started");
+            printf("worker started\n");
 
 
             fd = tca8424_initComms(TCA_ADDR);
             if (fd<0)
             {
-                writeToLog("failed to start communication with TCA8424");
+                printf("failed to start communication with TCA8424\n");
                 return QString("failed");
             }
             tca8424_reset(fd);
@@ -196,7 +195,7 @@ QString Tohkbd::setInterruptEnable(const QString &arg)
         }
         else
         {
-            writeToLog("failed to enable interrupt (are you root?)");
+            printf("failed to enable interrupt (are you root?)\n");
             interruptsEnabled = false;
             return QString("failed");
         }
@@ -204,7 +203,7 @@ QString Tohkbd::setInterruptEnable(const QString &arg)
     else
     {
 
-        writeToLog("disabling interrupt");
+        printf("disabling interrupt\n");
 
         interruptsEnabled = false;
 
@@ -224,24 +223,21 @@ QString Tohkbd::setInterruptEnable(const QString &arg)
 
 void Tohkbd::handleDisplayStatus(const QDBusMessage& msg)
 {
-    char buf[100];
-
     QList<QVariant> args = msg.arguments();
 
-    snprintf(buf, 100, "Display status changed to ""%s""", qPrintable(args.at(0).toString()));
-    writeToLog(buf);
+    printf("Display status changed to \"%s\"\n", qPrintable(args.at(0).toString()));
 
     QString turn = QString("%1").arg(args.at(0).toString());
 
     if ((QString::localeAwareCompare( turn, "on") == 0) && !vddEnabled && !interruptsEnabled)
     {
-        writeToLog("enabling tohkbd");
+        printf("enabling tohkbd\n");
         setVddState("on");
         setInterruptEnable("on");
     }
     else if ((QString::localeAwareCompare( turn, "off") == 0) && vddEnabled && interruptsEnabled)
     {
-        writeToLog("disabling tohkbd");
+        printf("disabling tohkbd\n");
         setInterruptEnable("off");
         setVddState("off");
     }
@@ -257,30 +253,25 @@ void Tohkbd::handleDisplayStatus(const QDBusMessage& msg)
 
 void Tohkbd::handleGpioInterrupt()
 {
-    int fd, isShift, isAlt;
+    static int haveCtrl = 0;
+    int fd, code, isShift, isAlt, isCtrl;
     char inRep[12];
-    char buf[100];
-    char lbuf[100];
-
-    int code = 0;
-
-    //writeToLog("TOH Interrupt reached interrupt handler routine.");
+    const char *buf;
 
     mutex.lock();
 
     fd = tca8424_initComms(TCA_ADDR);
     if (fd<0)
     {
-        writeToLog("failed to start communication with TCA8424");
+        printf("failed to start communication with TCA8424\n");
         return;
     }
     tca8424_readInputReport(fd, inRep);
     tca8424_closeComms(fd);
 
+    buf = tca8424_processKeyMap(inRep, &code, &isShift, &isAlt, &isCtrl);
 
-    snprintf(buf, 100, "%s" , tca8424_processKeyMap(inRep, &code, &isShift, &isAlt ));
-
-    if ((code !=0) && (capsLockSeq == 1 || capsLockSeq == 2)) /* Abort caps-lock if other key pressed */
+    if ((code != 0) && (capsLockSeq == 1 || capsLockSeq == 2)) /* Abort caps-lock if other key pressed */
         capsLockSeq = 0;
 
     if (code == 0 && isShift && capsLockSeq == 0) /* Shift pressed first time */
@@ -293,7 +284,7 @@ void Tohkbd::handleGpioInterrupt()
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 1);
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 0);
         uinputif->synUinputDevice();
-        writeToLog("CapsLock on");
+        printf("CapsLock on\n");
     }
     else if (code == 0 && isShift && capsLockSeq == 3) /* Shift pressed 3rd time */
     {
@@ -301,14 +292,19 @@ void Tohkbd::handleGpioInterrupt()
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 1);
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 0);
         uinputif->synUinputDevice();
-        writeToLog("CapsLock off");
+        printf("CapsLock off\n");
     }
-
+    else if (code == 0 && isCtrl) /* Ctrl pressed */
+    {
+        haveCtrl ^= 1;
+        uinputif->sendUinputKeyPress(KEY_LEFTCTRL, haveCtrl);
+        printf("%s\n", haveCtrl ? "Ctrl down" : "Ctrl lifted");
+    }
 
     if (code != 0) /* We resolved what was pressed */
     {
-        snprintf(lbuf, 100, "Key pressed: %s (%d 0x%02x shft=%d alt=%d)", buf, code, inRep[5], isShift, isAlt);
-        writeToLog( lbuf );
+        printf("Key pressed: %s (%d 0x%02x shft=%d alt=%d ctrl=%d)\n",
+               buf, code, inRep[5], isShift, isAlt, haveCtrl);
 
         if (isShift)
             uinputif->sendUinputKeyPress(KEY_LEFTSHIFT, 1);
@@ -316,18 +312,22 @@ void Tohkbd::handleGpioInterrupt()
         uinputif->sendUinputKeyPress(code, 0);
         if (isShift)
             uinputif->sendUinputKeyPress(KEY_LEFTSHIFT, 0);
+        if (haveCtrl)
+        {
+            uinputif->sendUinputKeyPress(KEY_LEFTCTRL, 0);
+            printf("Ctrl released automatically\n");
+            haveCtrl = 0;
+        }
 
         uinputif->synUinputDevice();
 
     }
     else if (buf[0] != '!')
     {
-        snprintf(lbuf, 100, "UNK Input report: %s %02x%02x%02x%02x%02x %02x%02x%02x%02x%02x%02x", buf, inRep[0], inRep[1], inRep[2], inRep[3], inRep[4], inRep[5], inRep[6], inRep[7], inRep[8], inRep[9], inRep[10]);
-        writeToLog(lbuf);
+        printf("UNK Input report: %s %02x%02x%02x%02x%02x %02x%02x%02x%02x%02x%02x\n",
+               buf, inRep[0], inRep[1], inRep[2], inRep[3], inRep[4], inRep[5],
+               inRep[6], inRep[7], inRep[8], inRep[9], inRep[10]);
     }
 
-
     mutex.unlock();
-
 }
-

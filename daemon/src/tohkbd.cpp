@@ -20,7 +20,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include <signal.h>
-#include "tohkbd.h"
 #include "tohkeyboard.h"
 #include "tca8424.h"
 #include "toh.h"
@@ -31,39 +30,38 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 
+static void daemonize();
+static void signalHandler(int sig);
+
 
 int main(int argc, char **argv)
 {
-    char buf[100];
-
     QCoreApplication app(argc, argv);
 
     daemonize();
 
-    snprintf(buf, 100, "Starting tohkbd daemon. build %s %s", __DATE__, __TIME__);
-    writeToLog(buf);
+    setlinebuf(stdout);
+    setlinebuf(stderr);
+
+    printf("Starting tohkbd daemon. build %s %s\n", __DATE__, __TIME__);
 
     if (!QDBusConnection::systemBus().isConnected())
     {
-        fprintf(stderr, "Cannot connect to the D-Bus systemBus\n");
-        writeToLog("Cannot connect to the D-Bus systemBus");
-        writeToLog(qPrintable(QDBusConnection::systemBus().lastError().message()));
+        printf("Cannot connect to the D-Bus systemBus\n%s\n",
+               qPrintable(QDBusConnection::systemBus().lastError().message()));
         sleep(3);
         exit(EXIT_FAILURE);
     }
-    writeToLog("Connected to D-Bus systembus");
-
-    writeToLog(qPrintable(getenv ("DBUS_SESSION_BUS_ADDRESS")));
+    printf("Connected to D-Bus systembus\n");
 
     if (!QDBusConnection::sessionBus().isConnected())
     {
-        fprintf(stderr, "Cannot connect to the D-Bus sessionBus\n");
-        writeToLog("Cannot connect to the D-Bus sessionBus");
-        writeToLog(qPrintable(QDBusConnection::sessionBus().lastError().message()));
+        printf("Cannot connect to the D-Bus sessionBus\n%s\n",
+               qPrintable(QDBusConnection::sessionBus().lastError().message()));
         sleep(3);
         exit(EXIT_FAILURE);
     }
-    writeToLog("Connected to D-Bus sessionbus");
+    printf("Connected to D-Bus sessionbus\n");
 
     Tohkbd tohkbd;
 
@@ -76,11 +74,13 @@ int main(int argc, char **argv)
                           &tohkbd, SLOT(handleDisplayStatus(const QDBusMessage&)));
 
     if(mceSignalconn.isConnected())
-        writeToLog("com.nokia.mce.signal.display_status_ind Connected");
+    {
+        printf("com.nokia.mce.signal.display_status_ind Connected\n");
+    }
     else
     {
-        writeToLog("com.nokia.mce.signal.display_status_ind Not connected");
-        writeToLog(qPrintable(QDBusConnection::systemBus().lastError().message()));
+        printf("com.nokia.mce.signal.display_status_ind Not connected\n%s\n",
+               qPrintable(QDBusConnection::systemBus().lastError().message()));
     }
 
 
@@ -88,69 +88,43 @@ int main(int argc, char **argv)
 
 }
 
-
-void writeToLog(const char *buf)
+static void daemonize()
 {
-	int logFile;
-	char ts[20];
-    char tmp[1024];
-	
-	time_t t;
-	struct tm *tnow;
+    /* Change the file mode mask */
+    umask(0);
 
-	t = time(NULL);
-	tnow = localtime(&t);	
-	
-	strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", tnow);
-	
-	snprintf(tmp, sizeof(tmp), "%s :: %s\r\n", ts, buf);
-	
-    logFile = open("tohkbdlog", O_WRONLY | O_CREAT | O_APPEND, 0666);
+    /* Change the current working directory */
+    if ((chdir("/tmp")) < 0)
+        exit(EXIT_FAILURE);
 
-	if (logFile != -1)
-		write(logFile, tmp, strlen(tmp));
+    /* Close out the standard file descriptors */
+    // close(STDIN_FILENO);
+    // close(STDOUT_FILENO);
+    // close(STDERR_FILENO);
 
-	close(logFile);
+    /* register signals to monitor / ignore */
+    signal(SIGCHLD,SIG_IGN); /* ignore child */
+    signal(SIGTSTP,SIG_IGN); /* ignore tty signals */
+    signal(SIGTTOU,SIG_IGN);
+    signal(SIGTTIN,SIG_IGN);
+    signal(SIGHUP,signalHandler); /* catch hangup signal */
+    signal(SIGTERM,signalHandler); /* catch kill signal */
 }
 
 
-void daemonize()
+static void signalHandler(int sig) /* signal handler function */
 {
-	/* Change the file mode mask */
-	umask(0);
-
-	/* Change the current working directory */
-	if ((chdir("/tmp")) < 0) 
-		exit(EXIT_FAILURE);
-
-	/* Close out the standard file descriptors */
-//	close(STDIN_FILENO);
-//	close(STDOUT_FILENO);
-//	close(STDERR_FILENO);
-
-	/* register signals to monitor / ignore */
-	signal(SIGCHLD,SIG_IGN); /* ignore child */
-	signal(SIGTSTP,SIG_IGN); /* ignore tty signals */
-	signal(SIGTTOU,SIG_IGN);
-	signal(SIGTTIN,SIG_IGN);
-	signal(SIGHUP,signalHandler); /* catch hangup signal */
-	signal(SIGTERM,signalHandler); /* catch kill signal */
-}
-
-
-void signalHandler(int sig) /* signal handler function */
-{
-	switch(sig)
-	{
-		case SIGHUP:
-			/* rehash the server */
-			writeToLog("Received signal SIGHUP");
-			break;		
-		case SIGTERM:
-			/* finalize the server */
-			writeToLog("Received signal SIGTERM");
+    switch(sig)
+    {
+        case SIGHUP:
+            /* rehash the server */
+            printf("Received signal SIGHUP\n");
+            break;
+        case SIGTERM:
+            /* finalize the server */
+            printf("Received signal SIGTERM\n");
             controlVdd(0);
-			exit(0);
-			break;		
-	}	
+            exit(0);
+            break;
+    }
 }

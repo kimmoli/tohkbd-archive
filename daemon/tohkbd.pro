@@ -16,7 +16,6 @@ SOURCES += \
     src/uinputif.cpp
 
 HEADERS += \
-    inc/tohkbd.h \
     inc/toh.h \
     inc/tca8424.h \
     inc/worker.h \
