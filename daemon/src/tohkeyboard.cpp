@@ -253,11 +253,9 @@ void Tohkbd::handleDisplayStatus(const QDBusMessage& msg)
 
 void Tohkbd::handleGpioInterrupt()
 {
-    int fd, isShift, isAlt;
+    int fd, code, isShift, isAlt;
     char inRep[12];
-    char buf[100];
-
-    int code = 0;
+    const char *buf;
 
     mutex.lock();
 
@@ -270,10 +268,9 @@ void Tohkbd::handleGpioInterrupt()
     tca8424_readInputReport(fd, inRep);
     tca8424_closeComms(fd);
 
+    buf = tca8424_processKeyMap(inRep, &code, &isShift, &isAlt);
 
-    snprintf(buf, 100, "%s" , tca8424_processKeyMap(inRep, &code, &isShift, &isAlt ));
-
-    if ((code !=0) && (capsLockSeq == 1 || capsLockSeq == 2)) /* Abort caps-lock if other key pressed */
+    if ((code != 0) && (capsLockSeq == 1 || capsLockSeq == 2)) /* Abort caps-lock if other key pressed */
         capsLockSeq = 0;
 
     if (code == 0 && isShift && capsLockSeq == 0) /* Shift pressed first time */
@@ -320,8 +317,5 @@ void Tohkbd::handleGpioInterrupt()
                inRep[6], inRep[7], inRep[8], inRep[9], inRep[10]);
     }
 
-
     mutex.unlock();
-
 }
-

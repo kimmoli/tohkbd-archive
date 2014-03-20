@@ -20,7 +20,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include <signal.h>
-#include "tohkbd.h"
 #include "tohkeyboard.h"
 #include "tca8424.h"
 #include "toh.h"
@@ -30,6 +29,9 @@
 #include <QtDBus/QtDBus>
 #include <QDBusConnection>
 #include <QDBusMessage>
+
+static void daemonize();
+static void signalHandler(int sig);
 
 
 int main(int argc, char **argv)
@@ -86,7 +88,7 @@ int main(int argc, char **argv)
 
 }
 
-void daemonize()
+static void daemonize()
 {
     /* Change the file mode mask */
     umask(0);
@@ -110,7 +112,7 @@ void daemonize()
 }
 
 
-void signalHandler(int sig) /* signal handler function */
+static void signalHandler(int sig) /* signal handler function */
 {
     switch(sig)
     {
