@@ -34,36 +34,32 @@
 
 int main(int argc, char **argv)
 {
-    char buf[100];
-
     QCoreApplication app(argc, argv);
 
     daemonize();
 
-    snprintf(buf, 100, "Starting tohkbd daemon. build %s %s", __DATE__, __TIME__);
-    writeToLog(buf);
+    setlinebuf(stdout);
+    setlinebuf(stderr);
+
+    printf("Starting tohkbd daemon. build %s %s\n", __DATE__, __TIME__);
 
     if (!QDBusConnection::systemBus().isConnected())
     {
-        fprintf(stderr, "Cannot connect to the D-Bus systemBus\n");
-        writeToLog("Cannot connect to the D-Bus systemBus");
-        writeToLog(qPrintable(QDBusConnection::systemBus().lastError().message()));
+        printf("Cannot connect to the D-Bus systemBus\n%s\n",
+               qPrintable(QDBusConnection::systemBus().lastError().message()));
         sleep(3);
         exit(EXIT_FAILURE);
     }
-    writeToLog("Connected to D-Bus systembus");
-
-    writeToLog(qPrintable(getenv ("DBUS_SESSION_BUS_ADDRESS")));
+    printf("Connected to D-Bus systembus\n");
 
     if (!QDBusConnection::sessionBus().isConnected())
     {
-        fprintf(stderr, "Cannot connect to the D-Bus sessionBus\n");
-        writeToLog("Cannot connect to the D-Bus sessionBus");
-        writeToLog(qPrintable(QDBusConnection::sessionBus().lastError().message()));
+        printf("Cannot connect to the D-Bus sessionBus\n%s\n",
+               qPrintable(QDBusConnection::sessionBus().lastError().message()));
         sleep(3);
         exit(EXIT_FAILURE);
     }
-    writeToLog("Connected to D-Bus sessionbus");
+    printf("Connected to D-Bus sessionbus\n");
 
     Tohkbd tohkbd;
 
@@ -76,43 +72,19 @@ int main(int argc, char **argv)
                           &tohkbd, SLOT(handleDisplayStatus(const QDBusMessage&)));
 
     if(mceSignalconn.isConnected())
-        writeToLog("com.nokia.mce.signal.display_status_ind Connected");
+    {
+        printf("com.nokia.mce.signal.display_status_ind Connected\n");
+    }
     else
     {
-        writeToLog("com.nokia.mce.signal.display_status_ind Not connected");
-        writeToLog(qPrintable(QDBusConnection::systemBus().lastError().message()));
+        printf("com.nokia.mce.signal.display_status_ind Not connected\n%s\n",
+               qPrintable(QDBusConnection::systemBus().lastError().message()));
     }
 
 
     return app.exec();
 
 }
-
-
-void writeToLog(const char *buf)
-{
-    int logFile;
-    char ts[20];
-    char tmp[1024];
-
-    time_t t;
-    struct tm *tnow;
-
-    t = time(NULL);
-    tnow = localtime(&t);
-
-    strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", tnow);
-
-    snprintf(tmp, sizeof(tmp), "%s :: %s\r\n", ts, buf);
-
-    logFile = open("tohkbdlog", O_WRONLY | O_CREAT | O_APPEND, 0666);
-
-    if (logFile != -1)
-        write(logFile, tmp, strlen(tmp));
-
-    close(logFile);
-}
-
 
 void daemonize()
 {
@@ -144,11 +116,11 @@ void signalHandler(int sig) /* signal handler function */
     {
         case SIGHUP:
             /* rehash the server */
-            writeToLog("Received signal SIGHUP");
+            printf("Received signal SIGHUP\n");
             break;
         case SIGTERM:
             /* finalize the server */
-            writeToLog("Received signal SIGTERM");
+            printf("Received signal SIGTERM\n");
             controlVdd(0);
             exit(0);
             break;
