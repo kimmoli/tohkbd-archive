@@ -213,7 +213,6 @@ void Tohkbd::handleGpioInterrupt()
         return;
     }
     tca8424_readInputReport(fd, inRep);
-    tca8424_closeComms(fd);
 
     buf = tca8424_processKeyMap(inRep, &code, &isShift, &isAlt, &isCtrl);
 
@@ -230,6 +229,7 @@ void Tohkbd::handleGpioInterrupt()
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 1);
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 0);
         uinputif->synUinputDevice();
+        tca8424_leds(fd, 1);
         printf("CapsLock on\n");
     }
     else if (code == 0 && isShift && capsLockSeq == 3) /* Shift pressed 3rd time */
@@ -238,6 +238,7 @@ void Tohkbd::handleGpioInterrupt()
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 1);
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 0);
         uinputif->synUinputDevice();
+        tca8424_leds(fd, 0);
         printf("CapsLock off\n");
     }
     else if (code == 0 && isCtrl) /* Ctrl pressed */
@@ -275,5 +276,6 @@ void Tohkbd::handleGpioInterrupt()
                inRep[6], inRep[7], inRep[8], inRep[9], inRep[10]);
     }
 
+    tca8424_closeComms(fd);
     mutex.unlock();
 }
