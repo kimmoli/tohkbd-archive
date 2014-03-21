@@ -6,7 +6,6 @@
  */
 
 #include "worker.h"
-#include <QTimer>
 #include <QEventLoop>
 #include <poll.h>
 #include "toh.h"

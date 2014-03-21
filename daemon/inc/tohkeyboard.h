@@ -7,7 +7,6 @@
 #define TOHKEYBOARD_H
 
 #include <QtCore/QObject>
-#include <QtCore/QTimer>
 #include <QtDBus/QtDBus>
 
 #include <QTime>
@@ -45,9 +44,6 @@ public slots:
     void handleGpioInterrupt();
     void handleDisplayStatus(const QDBusMessage& msg);
 
-private slots:
-    void timerTimeout();
-
 
 private:
     QThread *thread;
@@ -58,9 +54,6 @@ private:
     static bool interruptsEnabled;
 
     static int capsLockSeq;
-
-    int tca_led;
-    QTimer *timer;
 
     QMutex mutex;
 
