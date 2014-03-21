@@ -142,6 +142,7 @@ const char* tca8424_processKeyMap(char *input, int *c, int *shift, int *alt, int
     if (*alt)
     {
         k = input[6];
+        if (k == 0xC1) { *c = KEY_TAB; return "A Tab"; }
         if (k == 0xF1) { *c = KEY_1; return "Q 1"; }
         if (k == 0xA2) { *c = KEY_COMMA; *shift = true; return "Z <"; }
         if (k == 0xC2) { *c = KEY_1; *shift = true; return "S !"; }
@@ -171,7 +172,7 @@ const char* tca8424_processKeyMap(char *input, int *c, int *shift, int *alt, int
         if (k == 0xCA) { *c = KEY_0; *shift = true; return "? )"; }
         if (k == 0xFA) { *c = KEY_0; return "P 0"; }
         if (k == 0xB4) { *c = KEY_GRAVE; *shift = true; return "@ ~"; }
-        if (k == 0xB8) { *c = KEY_EQUAL; *shift = true; return "/ ^"; }
+        if (k == 0xB8) { *c = KEY_6; *shift = true; return "/ ^"; }
         if (k == 0xFD) { *c = KEY_HOME; return "Left Arrow"; }
         if (k == 0x9D) { *c = KEY_END; return "Right Arrow"; }
         if (k == 0xFC) { *c = KEY_PAGEUP; return "Up arrow"; }
@@ -186,7 +187,7 @@ const char* tca8424_processKeyMap(char *input, int *c, int *shift, int *alt, int
     if (*shift)
         k = input[6];
 
-    if (k == 0xC1) { *c = KEY_A; return "A Fn-hold"; }
+    if (k == 0xC1) { *c = KEY_A; return "A Tab"; }
     if (k == 0xF1) { *c = KEY_Q; return "Q 1"; }
     if (k == 0xA2) { *c = KEY_Z; return "Z <"; }
     if (k == 0xC2) { *c = KEY_S; return "S !"; }
@@ -218,7 +219,7 @@ const char* tca8424_processKeyMap(char *input, int *c, int *shift, int *alt, int
     if (k == 0xC9) { *c = KEY_L; return "L ("; }
     if (k == 0xF9) { *c = KEY_O; return "O 9"; }
     if (k == 0xAA) { *c = KEY_DOT; return ". :"; }
-    if (k == 0xCA) { *c = KEY_QUESTION; return "? )"; }
+    if (k == 0xCA) { *c = KEY_SLASH; *shift = true; return "? )"; }
     if (k == 0xFA) { *c = KEY_P; return "P 0"; }
     if (k == 0xCB) { *c = KEY_ENTER; return "Return"; }
     if (k == 0xFB) { *c = KEY_BACKSPACE; return "Del"; }
