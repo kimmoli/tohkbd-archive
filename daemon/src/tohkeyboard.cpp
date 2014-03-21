@@ -210,6 +210,7 @@ void Tohkbd::handleGpioInterrupt()
     if (fd<0)
     {
         printf("failed to start communication with TCA8424\n");
+        mutex.unlock();
         return;
     }
     tca8424_readInputReport(fd, inRep);
