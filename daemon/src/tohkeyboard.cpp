@@ -14,7 +14,6 @@
 #include <QtCore/QString>
 #include <QtDBus/QtDBus>
 #include <QDBusArgument>
-#include <QtCore/QTimer>
 #include <QTime>
 #include <QThread>
 //#include <QtDebug>
@@ -42,11 +41,6 @@ int Tohkbd::capsLockSeq = 0;
 /* Main */
 Tohkbd::Tohkbd()
 {
-    timer = new QTimer(this);
-    timer->setInterval(1000);
-    connect(timer, SIGNAL(timeout()), this, SLOT(timerTimeout()));
-    timer->start();
-
     thread = new QThread();
     worker = new Worker();
 
@@ -56,8 +50,6 @@ Tohkbd::Tohkbd()
     connect(thread, SIGNAL(started()), worker, SLOT(doWork()));
     connect(worker, SIGNAL(finished()), thread, SLOT(quit()), Qt::DirectConnection);
 
-    tca_led = 0;
-
     /* do this automatically at startup */
 #ifndef TEST_NOHW
     setVddState("on");
@@ -65,54 +57,9 @@ Tohkbd::Tohkbd()
 #endif
 
     uinputif = new UinputIf();
-
     uinputif->openUinputDevice();
-
-
 }
 
-/* Timer routine to update OLED clock */
-void Tohkbd::timerTimeout()
-{
-
-    int fd;
-
-#ifdef TEST_NOHW
-    printf("1 sec timer\n");
-
-    if (tca_led & 0x10)
-        uinputif->sendUinputKeyPress(KEY_LEFTSHIFT, 1);
-
-    uinputif->sendUinputKeyPress(KEY_A + (tca_led & 0xF), 1);
-    uinputif->sendUinputKeyPress(KEY_A + (tca_led & 0xF), 0);
-
-    if (tca_led & 0x10)
-        uinputif->sendUinputKeyPress(KEY_LEFTSHIFT, 0);
-
-    uinputif->synUinputDevice();
-
-    tca_led++;
-    return;
-#endif
-
-    if (vddEnabled) /* only if power applied to TOH */
-    {
-        mutex.lock();
-
-        fd = tca8424_initComms(TCA_ADDR);
-        if (fd<0)
-        {
-            printf("failed to start communication with TCA8424\n");
-            mutex.unlock();
-            return;
-        }
-        tca8424_leds(fd, ( (tca_led & 0x01) | ((capsLockSeq == 3) ? 2 : 0) ));
-        tca8424_closeComms(fd);
-        tca_led++;
-
-        mutex.unlock();
-    }
-}
 
 /* Function to set VDD (3.3V for OH) */
 QString Tohkbd::setVddState(const QString &arg)
@@ -185,7 +132,6 @@ QString Tohkbd::setInterruptEnable(const QString &arg)
                 return QString("failed");
             }
             tca8424_reset(fd);
-            tca8424_leds(fd, 5);
             tca8424_closeComms(fd);
 
 
@@ -267,7 +213,6 @@ void Tohkbd::handleGpioInterrupt()
         return;
     }
     tca8424_readInputReport(fd, inRep);
-    tca8424_closeComms(fd);
 
     buf = tca8424_processKeyMap(inRep, &code, &isShift, &isAlt, &isCtrl);
 
@@ -284,6 +229,7 @@ void Tohkbd::handleGpioInterrupt()
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 1);
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 0);
         uinputif->synUinputDevice();
+        tca8424_leds(fd, 1);
         printf("CapsLock on\n");
     }
     else if (code == 0 && isShift && capsLockSeq == 3) /* Shift pressed 3rd time */
@@ -292,6 +238,7 @@ void Tohkbd::handleGpioInterrupt()
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 1);
         uinputif->sendUinputKeyPress(KEY_CAPSLOCK, 0);
         uinputif->synUinputDevice();
+        tca8424_leds(fd, 0);
         printf("CapsLock off\n");
     }
     else if (code == 0 && isCtrl) /* Ctrl pressed */
@@ -329,5 +276,6 @@ void Tohkbd::handleGpioInterrupt()
                inRep[6], inRep[7], inRep[8], inRep[9], inRep[10]);
     }
 
+    tca8424_closeComms(fd);
     mutex.unlock();
 }
