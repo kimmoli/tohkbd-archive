@@ -132,7 +132,7 @@ const char* tca8424_processKeyMap(char *input, int *c, int *shift, int *alt, int
     {
         *alt = true;
     }
-    else if (k == 0xB3 || k == 0xB9)
+    else if (k == 0xB3)
     {
         *ctrl = true;
         return "! Ctrl";
@@ -177,6 +177,7 @@ const char* tca8424_processKeyMap(char *input, int *c, int *shift, int *alt, int
         if (k == 0x9D) { *c = KEY_END; return "Right Arrow"; }
         if (k == 0xFC) { *c = KEY_PAGEUP; return "Up arrow"; }
         if (k == 0xBD) { *c = KEY_PAGEDOWN; return "Down arrow"; }
+        if (k == 0xB9) { *c = KEY_ESC; return "| Escape"; }
 
         if (k == 0x00) return "! Released";
 
@@ -228,6 +229,7 @@ const char* tca8424_processKeyMap(char *input, int *c, int *shift, int *alt, int
     if (k == 0xBD) { *c = KEY_DOWN; return "Down arrow"; }
     if (k == 0xFD) { *c = KEY_LEFT; return "Left Arrow"; }
     if (k == 0x9D) { *c = KEY_RIGHT; return "Right Arrow"; }
+    if (k == 0xB9) { *c = KEY_BACKSLASH; return "| Escape"; }
 
     if (k == 0x00) return "! Released";
 
