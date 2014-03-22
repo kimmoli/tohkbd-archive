@@ -175,8 +175,8 @@ const char* tca8424_processKeyMap(char *input, int *c, int *shift, int *alt, int
         if (k == 0xB8) { *c = KEY_6; *shift = true; return "/ ^"; }
         if (k == 0xFD) { *c = KEY_HOME; return "Left Arrow"; }
         if (k == 0x9D) { *c = KEY_END; return "Right Arrow"; }
-        if (k == 0xFC) { *c = KEY_PAGEUP; return "Up arrow"; }
-        if (k == 0xBD) { *c = KEY_PAGEDOWN; return "Down arrow"; }
+        if (k == 0xFC) { *c = KEY_PAGEUP; *shift = true; return "Up arrow"; }
+        if (k == 0xBD) { *c = KEY_PAGEDOWN; *shift = true; return "Down arrow"; }
         if (k == 0xB9) { *c = KEY_ESC; return "| Escape"; }
 
         if (k == 0x00) return "! Released";
