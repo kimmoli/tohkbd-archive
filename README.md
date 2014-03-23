@@ -5,6 +5,7 @@ Jolla TOH keyboard
 
 NEW! RPM installer. <br>
 Download tohkbd-<version>.rpm to the phone and install `pkcon install-local tohkbd-<version>.rpm`<br>
+Installer will automatically start (and enable autostarting) the tohkbd daemon.
 
 Folder | Waht there?
 -------|-------------------------------------
