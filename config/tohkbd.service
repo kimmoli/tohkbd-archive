@@ -3,7 +3,7 @@ Description=The Other Half QWERTY Keyboard
 Requires=dbus.service
 
 [Service]
-ExecStart=/home/nemo/test/tohkbd
+ExecStart=/usr/sbin/tohkbd
 Restart=always
 
 [Install]
