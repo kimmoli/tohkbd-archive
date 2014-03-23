@@ -54,15 +54,6 @@ int main(int argc, char **argv)
     }
     printf("Connected to D-Bus systembus\n");
 
-    if (!QDBusConnection::sessionBus().isConnected())
-    {
-        printf("Cannot connect to the D-Bus sessionBus\n%s\n",
-               qPrintable(QDBusConnection::sessionBus().lastError().message()));
-        sleep(3);
-        exit(EXIT_FAILURE);
-    }
-    printf("Connected to D-Bus sessionbus\n");
-
     Tohkbd tohkbd;
 
 

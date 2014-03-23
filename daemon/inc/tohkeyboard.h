@@ -37,7 +37,6 @@ public:
 
 public slots:
     QString setVddState(const QString &arg);
-    QString kill(const QString &arg);
 
     /* interrupts */
     QString setInterruptEnable(const QString &arg);

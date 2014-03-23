@@ -85,15 +85,6 @@ QString Tohkbd::setVddState(const QString &arg)
 }
 
 
-/* Kills toholed daemon */
-QString Tohkbd::kill(const QString &arg)
-{
-    printf("Someone wants to kill me\n");
-    QMetaObject::invokeMethod(QCoreApplication::instance(), "quit");
-
-    return QString("AAARGH. %1").arg(arg);
-}
-
 
 /*
  *    Interrupt stuff
