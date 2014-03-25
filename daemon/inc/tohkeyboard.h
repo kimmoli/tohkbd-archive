@@ -36,10 +36,10 @@ public:
     }
 
 public slots:
-    QString setVddState(const QString &arg);
+    bool setVddState(bool state);
 
     /* interrupts */
-    QString setInterruptEnable(const QString &arg);
+    bool setInterruptEnable(bool);
     void handleGpioInterrupt();
     void handleDisplayStatus(const QDBusMessage& msg);
 

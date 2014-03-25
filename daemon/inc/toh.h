@@ -3,10 +3,14 @@
  *
  */
 
+#ifndef _TOHKBD_TOH_H
+#define _TOHKBD_TOH_H 1
+
+#define GPIO_INT "67"
+#define GPIO_INT_EDGE "falling"
+
 int controlVdd(int state);
 int getTohInterrupt();
 int releaseTohInterrupt(int fdGpio);
 
-#define GPIO_INT "67"
-#define GPIO_INT_EDGE "falling"
-#define POLL_TIMEOUT 1000
+#endif // !_TOHKBD_TOH_H

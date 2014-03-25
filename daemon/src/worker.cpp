@@ -5,18 +5,18 @@
  *
  */
 
-#include "worker.h"
-#include <QEventLoop>
 #include <poll.h>
-#include "toh.h"
-
+#include <unistd.h>
+#include <QEventLoop>
 #include <QThread>
+
+#include "worker.h"
 
 
 Worker::Worker(QObject *parent) :
     QObject(parent)
 {
-    _working =false;
+    _working = false;
     _abort = false;
 }
 
@@ -45,12 +45,7 @@ void Worker::abort()
 void Worker::doWork()
 {
     struct pollfd fdset[1];
-    int nfds = 1;
-
-    int timeout;
-    char *buf[20];
-
-    timeout = POLL_TIMEOUT;
+    unsigned char buf[20];
 
     for (;;)
     {
@@ -69,12 +64,12 @@ void Worker::doWork()
 
         fdset[0].fd = _gpio_fd;
         fdset[0].events = POLLPRI;
-
-        poll(fdset, nfds, timeout);
+        poll(fdset, 1, 1800);
 
         if (fdset[0].revents & POLLPRI)
         {
-            read(fdset[0].fd, buf, 20);
+            ssize_t res = read(fdset[0].fd, buf, sizeof(buf));
+            (void) res;
             emit gpioInterruptCaptured();
         }
 

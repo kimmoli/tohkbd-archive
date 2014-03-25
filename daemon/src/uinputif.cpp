@@ -45,44 +45,41 @@ int UinputIf::openUinputDevice()
 
 
     fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-    if(fd < 0)
+    if (fd < 0)
     {
         printf("uinput: error: open\n");
         return false;
     }
 
-    if(ioctl(fd, UI_SET_EVBIT, EV_KEY) < 0)
+    if (ioctl(fd, UI_SET_EVBIT, EV_KEY) < 0)
     {
         printf("uinput: error: ioctl UI_SET_EVBIT EV_KEY\n");
         return false;
     }
 
-    if(ioctl(fd, UI_SET_EVBIT, EV_SYN) < 0)
+    if (ioctl(fd, UI_SET_EVBIT, EV_SYN) < 0)
     {
         printf("uinput: error: ioctl UI_SET_EVBIT EV_SYN\n");
         return false;
     }
 
-
     /* Enable most of the keys */
-    for (i = KEY_ESC ; i < KEY_NUMLOCK ; i++)
+    for (i = KEY_ESC; i < KEY_NUMLOCK; i++)
     {
-        if(ioctl(fd, UI_SET_KEYBIT, i) < 0)
+        if (ioctl(fd, UI_SET_KEYBIT, i) < 0)
         {
             printf("uinput: error: ioctl UI_SET_KEYBIT\n");
             return false;
         }
     }
 
-    i=0;
-    while (specialKeys[i] != 0)
+    for (i=0; specialKeys[i] != 0; i++)
     {
-        if(ioctl(fd, UI_SET_KEYBIT, specialKeys[i] ) < 0)
+        if (ioctl(fd, UI_SET_KEYBIT, specialKeys[i]) < 0)
         {
             printf("uinput: error: ioctl UI_SET_KEYBIT\n");
             return false;
         }
-        i++;
     }
 
     //printf("uinput: /dev/uinput opened succesfully.\n");
@@ -94,13 +91,13 @@ int UinputIf::openUinputDevice()
     uidev.id.product = 0x4f48;
     uidev.id.version = 1;
 
-    if(write(fd, &uidev, sizeof(uidev)) < 0)
+    if (write(fd, &uidev, sizeof(uidev)) < 0)
     {
         printf("uinput: error: write uidev\n");
         return false;
     }
 
-    if(ioctl(fd, UI_DEV_CREATE) < 0)
+    if (ioctl(fd, UI_DEV_CREATE) < 0)
     {
         printf("uinput: error: ioctl UI_DEV_CREATE\n");
         return false;
@@ -126,13 +123,12 @@ int UinputIf::synUinputDevice()
     ev.type = EV_SYN;
     ev.code = SYN_REPORT;
     ev.value = 0;
-    if(write(fd, &ev, sizeof(struct input_event)) < 0)
+    if (write(fd, &ev, sizeof(struct input_event)) < 0)
     {
         printf("uinput: error: EV_SYN write\n");
         return false;
     }
     return true;
-
 }
 
 
@@ -153,7 +149,7 @@ int UinputIf::sendUinputKeyPress(unsigned int code, int val)
     ev.type = EV_KEY;
     ev.code = code;
     ev.value = val;
-    if(write(fd, &ev, sizeof(struct input_event)) < 0)
+    if (write(fd, &ev, sizeof(struct input_event)) < 0)
     {
         printf("uinput: error: EV_KEY write\n");
         return false;
@@ -172,7 +168,7 @@ int UinputIf::closeUinputDevice()
 {
     usleep(100000);
 
-    if(ioctl(fd, UI_DEV_DESTROY) < 0)
+    if (ioctl(fd, UI_DEV_DESTROY) < 0)
     {
         printf("uinput: error: ioctl\n");
         return false;
@@ -180,5 +176,4 @@ int UinputIf::closeUinputDevice()
 
     close(fd);
     return true;
-
 }
