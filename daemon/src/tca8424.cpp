@@ -8,41 +8,36 @@
  *
  */
 
-#include <linux/i2c-dev.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
+#include <linux/i2c-dev.h>
 #include <linux/input.h>
+#include <sys/ioctl.h>
 #include "tca8424.h"
 
 
 int tca8424_reset(int file)
 {
     const unsigned char buf[4] = {0x00, 0x06, 0x00, 0x01};
-
-    if (write(file, buf, 4) != 4)
+    if (write(file, buf, sizeof(buf)) != sizeof(buf))
     {
-        close(file);
-        return -3;
+        printf("tca8424: failed to reset\n");
+        return -1;
     }
-    return file;
+    return 0;
 }
 
 int tca8424_leds(int file, unsigned char leds)
 {
     unsigned char buf[9] = {0x00, 0x06, 0x20, 0x03, 0x00, 0x07, 0x01, 0x00, leds};
-
-    if (write(file, buf, 9) != 9)
+    if (write(file, buf, sizeof(buf)) != sizeof(buf))
     {
-        close(file);
-        return -4;
+        printf("tca8424: failed to set led state\n");
+        return -1;
     }
-    return file;
+    return 0;
 }
 
 
@@ -51,14 +46,17 @@ int tca8424_initComms(unsigned char addr)
     int file;
 
     /* open file and start ioctl */
-    if ((file = open( "/dev/i2c-1", O_RDWR )) < 0)
+    if ((file = open("/dev/i2c-1", O_RDWR)) < 0)
     {
+        printf("tca8424: failed to open /dev/i2c-1\n");
         return -1;
     }
-    if (ioctl( file, I2C_SLAVE, addr) < 0)
+    if (ioctl(file, I2C_SLAVE, addr) < 0)
     {
+        printf("tca8424: failed to ioctl(/dev/i2c-1, I2C_SLAVE, 0x%x)\n",
+               (unsigned int) addr);
         close(file);
-        return -2;
+        return -1;
     }
     return file;
 }
@@ -66,46 +64,47 @@ int tca8424_initComms(unsigned char addr)
 int tca8424_closeComms(int file)
 {
     close(file);
-    return file;
+    return 0;
 }
 
 int tca8424_readInputReport(int file, char* report)
 {
     const unsigned char buf[6] = {0x00, 0x06, 0x11, 0x02, 0x00, 0x07};
 
-    if (write(file, buf, 6) != 6)
+    if (write(file, buf, sizeof(buf)) != sizeof(buf))
     {
-        close(file);
-        return -5;
+        printf("tca8424: failed to request input report\n");
+        return -1;
     }
 
     memset(report, 0, 12);
     if (read(file, report, 11) != 11)
     {
-        close(file);
-        return -6;
+        printf("tca8424: failed to read input report\n");
+        return -1;
     }
 
-    return file;
+    return 0;
 }
 
 int tca8424_readMemory(int file, int start, int len, char* data)
 {
-    unsigned char buf[2] = {start & 0xff, (start>>8) & 0xff};
+    unsigned char buf[2] =
+        {(unsigned char) (start & 0xff), (unsigned char) ((start>>8) & 0xff)};
 
-    if (write(file, buf, 2) != 2)
+    if (write(file, buf, sizeof(buf)) != sizeof(buf))
     {
-        close(file);
-        return -11;
+        printf("tca8424: failed to request memory\n");
+        return -1;
     }
 
     if (read(file, data, len) != len)
     {
-        close(file);
-        return -12;
+        printf("tca8424: failed to read memory\n");
+        return -1;
     }
 
-    return file;
+    return 0;
 }
 
 /*

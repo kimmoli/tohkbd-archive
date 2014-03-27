@@ -1,36 +1,23 @@
 /*
  * (C) 2014 Kimmo Lindholm <kimmo.lindholm@gmail.com> Kimmoli
  *
- * toholed daemon, d-bus server call method functions.
- *
- *
- *
+ * tohkbd daemon, d-bus server call method functions.
  *
  */
 
-//#define TEST_NOHW 1
 
 #include <QtCore/QCoreApplication>
-#include <QtCore/QString>
-#include <QtDBus/QtDBus>
-#include <QDBusArgument>
-#include <QTime>
+#include <QDBusMessage>
 #include <QThread>
-//#include <QtDebug>
 
-#include <sys/time.h>
-#include <time.h>
 #include <unistd.h>
-
-#include <poll.h>
+#include <linux/input.h>
+#include <linux/uinput.h>
 
 #include "tohkeyboard.h"
 #include "toh.h"
 #include "tca8424.h"
-
 #include "uinputif.h"
-#include <linux/input.h>
-#include <linux/uinput.h>
 
 
 bool Tohkbd::interruptsEnabled = false;
@@ -51,10 +38,8 @@ Tohkbd::Tohkbd()
     connect(worker, SIGNAL(finished()), thread, SLOT(quit()), Qt::DirectConnection);
 
     /* do this automatically at startup */
-#ifndef TEST_NOHW
-    setVddState("on");
-    setInterruptEnable("on");
-#endif
+    setVddState(true);
+    setInterruptEnable(true);
 
     uinputif = new UinputIf();
     uinputif->openUinputDevice();
@@ -62,28 +47,27 @@ Tohkbd::Tohkbd()
 
 
 /* Function to set VDD (3.3V for OH) */
-QString Tohkbd::setVddState(const QString &arg)
+bool Tohkbd::setVddState(bool state)
 {
-    QString tmp = QString("VDD control request - turn %1 ").arg(arg);
-    QString turn = QString("%1").arg(arg);
-    QByteArray ba = tmp.toLocal8Bit();
+    printf("VDD control request - turn %s\n", state ? "on" : "off");
 
-    printf("%s\n", ba.data());
-
-    if (controlVdd( ( QString::localeAwareCompare( turn, "on") ? 0 : 1) ) < 0)
+    if (vddEnabled == state)
+    {
+        printf("VDD state already %s\n", state ? "on" : "off");
+    }
+    else if (controlVdd(state) < 0)
     {
         vddEnabled = false;
         printf("VDD control FAILED\n");
     }
     else
     {
-        vddEnabled = QString::localeAwareCompare( turn, "on") ? false : true;
+        vddEnabled = state;
         printf("VDD control OK\n");
     }
 
-    return QString("you have been served. %1").arg(arg);
+    return vddEnabled;
 }
-
 
 
 /*
@@ -91,94 +75,80 @@ QString Tohkbd::setVddState(const QString &arg)
  */
 
 
-QString Tohkbd::setInterruptEnable(const QString &arg)
+bool Tohkbd::setInterruptEnable(bool state)
 {
-    QString turn = QString("%1").arg(arg);
-    int fd;
+    printf("Interrupt control request - turn %s\n", state ? "on" : "off");
 
     if (!vddEnabled)
-        return QString("VDD Not active. Aborting.");
-
-    if(QString::localeAwareCompare( turn, "on") == 0)
     {
-        printf("enabling interrupt\n");
+        printf("Interrupt requested but VDD Not active. Aborting.\n");
+        return false;
+    }
+    else if (state == interruptsEnabled)
+    {
+        printf("Interrupt state already %s\n", state ? "on" : "off");
+        return interruptsEnabled;
+    }
 
+    worker->abort();
+    thread->wait(); // If the thread is not running, this will immediately return.
+    interruptsEnabled = false;
+    if (gpio_fd >= 0)
+    {
+        releaseTohInterrupt(gpio_fd);
+        gpio_fd = -1;
+    }
 
+    if (state)
+    {
         gpio_fd = getTohInterrupt();
-
-        if (gpio_fd > -1)
+        if (gpio_fd < 0)
         {
-            worker->abort();
-            thread->wait(); // If the thread is not running, this will immediately return.
-
-            worker->requestWork(gpio_fd);
-
-            printf("worker started\n");
-
-
-            fd = tca8424_initComms(TCA_ADDR);
-            if (fd<0)
-            {
-                printf("failed to start communication with TCA8424\n");
-                return QString("failed");
-            }
-            tca8424_reset(fd);
-            tca8424_closeComms(fd);
-
-
-            interruptsEnabled = true;
-
-            return QString("success");
+            printf("failed to enable interrupt (are you root?)\n");
         }
         else
         {
-            printf("failed to enable interrupt (are you root?)\n");
-            interruptsEnabled = false;
-            return QString("failed");
+            int fd = tca8424_initComms(TCA_ADDR);
+            if (fd < 0)
+            {
+                printf("failed to start communication with TCA8424\n");
+                releaseTohInterrupt(gpio_fd);
+                gpio_fd = -1;
+            }
+            else
+            {
+                tca8424_reset(fd);
+                tca8424_closeComms(fd);
+
+                worker->requestWork(gpio_fd);
+                printf("worker started\n");
+
+                interruptsEnabled = true;
+            }
         }
     }
-    else
-    {
 
-        printf("disabling interrupt\n");
-
-        interruptsEnabled = false;
-
-
-        worker->abort();
-        thread->wait();
-/*
-        delete thread;
-        delete worker;
-*/
-        releaseTohInterrupt(gpio_fd);
-
-        return QString("disabled");
-    }
-
+    return interruptsEnabled;
 }
 
 void Tohkbd::handleDisplayStatus(const QDBusMessage& msg)
 {
     QList<QVariant> args = msg.arguments();
+    const char *turn = qPrintable(args.at(0).toString());
 
-    printf("Display status changed to \"%s\"\n", qPrintable(args.at(0).toString()));
-
-    QString turn = QString("%1").arg(args.at(0).toString());
-
-    if ((QString::localeAwareCompare( turn, "on") == 0) && !vddEnabled && !interruptsEnabled)
+    printf("Display status changed to \"%s\"\n", turn);
+    if (strcmp(turn, "on") == 0)
     {
         printf("enabling tohkbd\n");
-        setVddState("on");
-        setInterruptEnable("on");
+        setVddState(true);
+        setInterruptEnable(true);
     }
-    else if ((QString::localeAwareCompare( turn, "off") == 0) && vddEnabled && interruptsEnabled)
+    else if (strcmp(turn, "off") == 0)
     {
         printf("disabling tohkbd\n");
-        setInterruptEnable("off");
-        setVddState("off");
+        setInterruptEnable(false);
+        setVddState(false);
     }
-
 }
 
 
@@ -198,7 +168,7 @@ void Tohkbd::handleGpioInterrupt()
     mutex.lock();
 
     fd = tca8424_initComms(TCA_ADDR);
-    if (fd<0)
+    if (fd < 0)
     {
         printf("failed to start communication with TCA8424\n");
         mutex.unlock();
