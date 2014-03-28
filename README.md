@@ -23,6 +23,8 @@ To check is the service running (root) `systemctl status tohkbd.service` and it 
 To follow daemon log output `journalctl _SYSTEMD_UNIT=tohkbd.service -f`
 
 
+*NOTE* <br>If you update binary only, you need to `systemctl stop tohkbd.service` before replacing binary file. <BR>After that you need to start it again with `systemctl start tohkbd.service`
+
 Note that all key presses are logged so take that into account when entering passwords, etc if you also plan to post your device's logfiles to the internet.
 
 
