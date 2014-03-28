@@ -5,6 +5,10 @@ CONFIG -= app_bundle
 QT += dbus
 QT -= gui
 
+VERSION = \\\"'0.1-29'\\\"
+DEFINES += "VERSION_NUMBER=$${VERSION}"
+
+
 INCLUDEPATH += ./inc
 
 SOURCES += \
