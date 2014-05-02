@@ -1,3 +1,15 @@
+OBSOLETE
+========
+
+This repository is archive only
+
+Please see https://github.com/kimmoli/tohkbd for latest version of daemon.
+
+PCB Files are latest.
+
+STL Files, check dirkvl for possible changes - these are not updated.
+
+
 tohkbd
 ======
 
